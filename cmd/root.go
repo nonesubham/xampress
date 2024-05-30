@@ -1,10 +1,12 @@
 package cmd
 
 import (
-	"github.com/spf13/cobra"
 	"encoding/json"
+	"fmt"
 	"os"
 	"xampress/utils"
+    "runtime"
+	"github.com/spf13/cobra"
 )
 
 var (
@@ -18,10 +20,19 @@ var (
 	}
 )
 func init() {
-	os.Chdir("../")
+    var xamp_path string
+    if runtime.GOOS =="windows"{
+        xamp_path = "C:/xampp"
+    }else if runtime.GOOS == "linux"{
+        xamp_path = "/opt/lampp"
+    }else if runtime.GOOS=="darwin"{
+        xamp_path = "/Applications/XAMPP"
+    }
+	os.Chdir(xamp_path)
 	if _, err := os.Stat("xampress/config.json"); os.IsNotExist(err){
-        file, errj := os.Create("xampress/config.json")
-        utils.Chk_error(errj,"Error while creating 'config.json'")
+        file, _ := os.Create("xampress/config.json")
+        // utils.Chk_error(errj,)
+        fmt.Print(os.Getwd())
         defer file.Close()
         defConf := (utils.Config{Db_user: "root", Db_pass: "", Wp_user: "root", Wp_pass: "root", Wp_email: "example@domain.com"})
         enc_data,_ := json.Marshal(defConf)
