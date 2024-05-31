@@ -12,7 +12,7 @@ func connDB() *sql.DB {
 	var csf_data Config = GetConf()
 	var db_uri string = csf_data.Db_user + ":" + csf_data.Db_pass + "@/mysql"
 	db, err := sql.Open("mysql", db_uri)
-	Chk_error(err, "Error opening database connection")
+	Chk_error(err, "Error opening database connection, check your database credentials")
 	return db
 }
 //Create database
@@ -20,7 +20,8 @@ func CreateDBase(dbName string) {
 	var db *sql.DB = connDB()
 	defer db.Close() 
 	stus := db.Ping()
-	Chk_error(stus, "Encountering error while connecting to MYSQL server.")
+	
+	Chk_error(stus, "Encountering error while connecting to MYSQL server, check your database credentials")
 	_, err := db.Exec("CREATE DATABASE " + dbName)
 	Chk_error(err, "Unable to create databse")
 }

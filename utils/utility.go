@@ -18,6 +18,7 @@ type Config struct{
 	Wp_user string
 	Wp_pass string
 	Wp_email string
+	Xampp string
 }
 func GetConf() Config{
 	file,_:= os.ReadFile("xampress/config.json")

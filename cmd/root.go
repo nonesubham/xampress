@@ -1,12 +1,11 @@
 package cmd
 
 import (
+	"github.com/spf13/cobra"
 	"encoding/json"
-	"fmt"
 	"os"
 	"xampress/utils"
     "runtime"
-	"github.com/spf13/cobra"
 )
 
 var (
@@ -19,22 +18,24 @@ var (
 		`,
 	}
 )
+
 func init() {
-    var xamp_path string
-    if runtime.GOOS =="windows"{
-        xamp_path = "C:/xampp"
-    }else if runtime.GOOS == "linux"{
-        xamp_path = "/opt/lampp"
-    }else if runtime.GOOS=="darwin"{
-        xamp_path = "/Applications/XAMPP"
+    var xamp_dir string
+    
+    switch runtime.GOOS {
+        case "windows":
+            xamp_dir = "C:/xampp"
+        case "darwin":
+            xamp_dir = "/Applications/XAMPP/"
+        case "linux":
+            xamp_dir = "/Applications/XAMPP/"
     }
-	os.Chdir(xamp_path)
+	os.Chdir(xamp_dir)
 	if _, err := os.Stat("xampress/config.json"); os.IsNotExist(err){
-        file, _ := os.Create("xampress/config.json")
-        // utils.Chk_error(errj,)
-        fmt.Print(os.Getwd())
+        file, errj := os.Create("xampress/config.json")
+        utils.Chk_error(errj,"Error while creating 'config.json'")
         defer file.Close()
-        defConf := (utils.Config{Db_user: "root", Db_pass: "", Wp_user: "root", Wp_pass: "root", Wp_email: "example@domain.com"})
+        defConf := (utils.Config{Db_user: "root", Db_pass: "", Wp_user: "root", Wp_pass: "root", Wp_email: "example@domain.com", Xampp: xamp_dir})
         enc_data,_ := json.Marshal(defConf)
         _, errw := file.Write(enc_data)
         utils.Chk_error(errw, "Encountering while writing data in 'config.json'")
@@ -46,6 +47,7 @@ func init() {
     configCMD.Flags().StringVar(&wp_user, "wp-user", confData.Wp_user, "Set WordPress username")
     configCMD.Flags().StringVar(&wp_pass, "wp-pass", confData.Wp_pass, "Set WordPress password")
     configCMD.Flags().StringVar(&wp_email, "wp-email",confData.Wp_email, "Set WordPress email")
+    configCMD.Flags().StringVar(&xampp_path, "xampp-dir",confData.Xampp, "Set XAMPP path")
 }
 
 func Execute() error {
