@@ -1,1 +1,8 @@
-{"Db_user":"root","Db_pass":"root","Wp_user":"hello","Wp_pass":"root","Wp_email":"example@domain.com","Xampp":"C:/xampp"}
+{
+  "db_user": "root",
+  "db_pass": "root",
+  "wp_user": "hello",
+  "wp_pass": "root",
+  "wp_email": "example@domain.com",
+  "xampp": "C:/xampp"
+}

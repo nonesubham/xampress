@@ -9,30 +9,34 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+
 	"github.com/fatih/color"
 )
 
-type Config struct{
-	Db_user string 
-	Db_pass string
-	Wp_user string
-	Wp_pass string
-	Wp_email string
-	Xampp string
+type Config struct {
+	Db_user  string `json:"db_user"`
+	Db_pass  string `json:"db_pass"`
+	Wp_user  string `json:"wp_user"`
+	Wp_pass  string `json:"wp_pass"`
+	Wp_email string `json:"wp_email"`
+	Xampp    string `json:"xampp"`
 }
-func GetConf() Config{
-	file,_:= os.ReadFile("xampress/config.json")
+
+func GetConf() Config {
+	file, _ := os.ReadFile("xampress/config.json")
 	var dec_Conf Config
 	json.Unmarshal(file, &dec_Conf)
 	return dec_Conf
 }
-//Removes spaces from project name if have any
-func GenProj(projName string)(string, string){
+
+// Removes spaces from project name if have any
+func GenProj(projName string) (string, string) {
 	var base_fldr = strings.ToLower(strings.ReplaceAll(projName, " ", "-"))
 	var base_db = strings.ToLower(strings.ReplaceAll(projName, " ", "_"))
-	return base_db,base_fldr
+	return base_db, base_fldr
 }
-//Check internet connection
+
+// Check internet connection
 func CheckConnection() bool {
 	resp, err := http.Get("https://httpbin.org/get")
 	if err != nil {
@@ -42,10 +46,11 @@ func CheckConnection() bool {
 
 	return resp.StatusCode == http.StatusOK
 }
-//Download wordpress
-func WPDown(projName string) bool{
+
+// Download wordpress
+func WPDown(projName string) bool {
 	var base_fldr = strings.ToLower(strings.ReplaceAll(projName, " ", "-"))
-	if ProjExist(base_fldr){
+	if ProjExist(base_fldr) {
 		PrintScrn("'"+projName+"' site already exists please use another name...", "red", 0, false)
 		os.Exit(0)
 	}
@@ -57,25 +62,21 @@ func WPDown(projName string) bool{
 	return true
 }
 
-//Print on terminal
+// Print on terminal
 func PrintScrn(usr_text string, tcolor string, prev_len int, clr_ovr bool) {
-	var main_clr color.Attribute
+	colorsMap := map[string]color.Attribute{
+		"green":   color.FgGreen,
+		"red":     color.FgRed,
+		"blue":    color.FgBlue,
+		"yellow":  color.FgYellow,
+		"cyan":    color.FgCyan,
+		"magenta": color.FgMagenta,
+		"white":   color.FgWhite,
+	}
 
-	switch tcolor {
-	case "green":
-		main_clr = color.FgGreen
-	case "red":
-		main_clr = color.FgRed
-	case "blue":
-		main_clr = color.FgBlue
-	case "yellow":
-		main_clr = color.FgYellow
-	case "cyan":
-		main_clr = color.FgCyan
-	case "magenta":
-		main_clr = color.FgMagenta
-	default:
-		main_clr = color.FgWhite
+	main_clr := color.FgWhite
+	if color, ok := colorsMap[tcolor]; ok {
+		main_clr = color
 	}
 
 	if clr_ovr {
@@ -97,6 +98,7 @@ func clearScreen() {
 	cmd.Stdout = os.Stdout
 	cmd.Run()
 }
+
 // Check error and panic
 func Chk_error(stus error, msg string) {
 	if stus != nil {
@@ -104,6 +106,7 @@ func Chk_error(stus error, msg string) {
 		os.Exit(0)
 	}
 }
+
 // To migrate files
 func FileMgrt(sourceDir, targetDir string) bool {
 	files, err := os.ReadDir(sourceDir)
@@ -136,6 +139,7 @@ func Chk_dir() bool {
 	}
 
 }
+
 // Check Projecy exist or not
 func ProjExist(ProjName string) bool {
 	checkPath := filepath.Join("htdocs", ProjName)
@@ -146,29 +150,29 @@ func ProjExist(ProjName string) bool {
 	}
 }
 
-func Down_wpCli() bool{
+func Down_wpCli() bool {
 	var wp_cli string = filepath.Join("php", "wp-cli.phar")
-		resp,_ :=http.Get("https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar")
-		if !CheckConnection(){
-			PrintScrn("Your device isn't connected to internet, Please connect and try again\n","red", 0,false)
-			os.Exit(0)
-		}
-		defer resp.Body.Close()
-		wp_cli_file, cli_err := os.Create(wp_cli)
-		Chk_error(cli_err, "Encountering error during downloading WP-Cli")	
-		defer wp_cli_file.Close()
-		if _, err := io.Copy(wp_cli_file, resp.Body); err != nil {
-			return false
-		}
+	resp, _ := http.Get("https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar")
+	if !CheckConnection() {
+		PrintScrn("Your device isn't connected to internet, Please connect and try again\n", "red", 0, false)
+		os.Exit(0)
+	}
+	defer resp.Body.Close()
+	wp_cli_file, cli_err := os.Create(wp_cli)
+	Chk_error(cli_err, "Encountering error during downloading WP-Cli")
+	defer wp_cli_file.Close()
+	if _, err := io.Copy(wp_cli_file, resp.Body); err != nil {
+		return false
+	}
 
-		return true
+	return true
 }
 
 func Chk_wpcli() bool {
 	var wp_cli string = filepath.Join("php", "wp-cli.phar")
 	if _, err := os.Stat(wp_cli); os.IsNotExist(err) {
 		return false
-	}else{
+	} else {
 		return true
 	}
 
