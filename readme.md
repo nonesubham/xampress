@@ -17,14 +17,8 @@ Xampress is a Command Line Interface (CLI) tool designed to simplify the managem
 
 ## Release Files
 
-#### Recommended
 
-File|Description
-:---|:---
-[xampress_linux](https://github.com/nonesubham/xampress/releases/download/v0.1/xampress_linux)|Universal standalone executable (recommended for **Linux**)
-[xampress_linux](https://github.com/nonesubham/xampress/releases/download/v0.1/xampress_linux_x32)|Universal standalone executable (recommended for **Linux** 32 bit systems)
-[xampress_windows.exe](https://github.com/nonesubham/xampress/releases/download/v0.1/xampress_windows.exe)|Windows (Win7 SP1+) standalone x64 binary (recommended for **Windows**)
-[xampress_macos](https://github.com/nonesubham/xampress/releases/download/v0.1/xampress_macos)|Universal standalone executable (recommended for **MacOS**)
+You can find suitable binary for your Operating System at **[Release](https://github.com/nonesubham/xampress/releases/)**.
 
 
 ## Build Your Own Binary
