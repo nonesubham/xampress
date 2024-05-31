@@ -107,28 +107,6 @@ func Chk_error(stus error, msg string) {
 	}
 }
 
-// To migrate files
-func FileMgrt(sourceDir, targetDir string) bool {
-	files, err := os.ReadDir(sourceDir)
-	if err != nil {
-		return false
-	}
-
-	// Iterate over the contents
-	for _, file := range files {
-		sourcePath := filepath.Join(sourceDir, file.Name())
-		targetPath := filepath.Join(targetDir, file.Name())
-
-		// Move the file or folder
-		err := os.Rename(sourcePath, targetPath)
-		if err != nil {
-			return false
-		}
-	}
-
-	return true
-}
-
 // To verify xampress inside Xampp or not
 func Chk_dir() bool {
 	check_path := filepath.Join("htdocs")
