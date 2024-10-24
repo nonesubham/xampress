@@ -1,11 +1,15 @@
 /*
 Copyright © 2024 Subham nullsubham@gmail.com
-
 */
 package cmd
- 
+
 import (
 	"fmt"
+	"os"
+	"path"
+
+	// "path"
+	"xampress/helpers"
 
 	"github.com/spf13/cobra"
 )
@@ -21,20 +25,48 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("create called")
+		if len(args) !=0 {
+			crtFn(args)
+		}else{
+			fmt.Println("Please provide site name in order to create site!")
+		}
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(createCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// createCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// createCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
+func crtFn(projNames []string) {
+	folderName, dbName, siteName := helpers.CleanName(projNames)
+	xamppConfig, err := helpers.GetConf("xampp")
+	helpers.ErrHandler(err, true, "", true)
+
+	xamppSettings, ok := xamppConfig.(map[string]interface{})
+	if !ok {
+		fmt.Printf("Invalid value: %v\nUpdate it with 'config' command.\n", xamppConfig)
+		return
+	}
+
+	xamppPath, ok := xamppSettings["xampp"].(string)
+	if !ok {
+		fmt.Println("Invalid value for 'xampp' in configuration. It must be a string.")
+		return
+	}
+
+	htdocsPath, ok := xamppSettings["htdocs"].(string)
+	if !ok {
+		fmt.Println("Invalid value for 'htdocs' in configuration. It must be a string.")
+		return
+	}
+
+	projectDir := path.Join(xamppPath, htdocsPath, folderName)
+	if helpers.DirExists(projectDir) {
+		fmt.Println(folderName, "named folder already exists, please use another name.")
+		return
+	}
+
+	fmt.Println("Creating directory at", projectDir, dbName, siteName)
+	helpers.ErrHandler(os.Mkdir(projectDir, os.ModePerm), true, "", false)
+}
+
+

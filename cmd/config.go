@@ -46,10 +46,11 @@ func parentFlags(flag *pflag.Flag) {
 }
 
 func init() {
+
 	confPath, err := helpers.GetConfigPath()
 	helpers.ErrHandler(err, true, "", false)
 
-	if !helpers.FileExists(confPath) {
+	if !helpers.DirExists(confPath) {
 		fmt.Println("Config file not found, generating with default data.")
 		genConf(confPath)
 	}
@@ -121,4 +122,5 @@ func genConf(confPath string) {
 		fmt.Println("Something went wrong while creating config.yaml at", confPath)
 		os.Exit(1)
 	}
+
 }

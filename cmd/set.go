@@ -31,7 +31,7 @@ installation details stored in the configuration file.`,
 			case "dir":
 				parent = "xampp"
 			}
-			var err error = helpers.Set(parent+"."+itm[1], flag.Value)
+			var err error = helpers.SetConf(parent+"."+itm[1], flag.Value)
 			helpers.ErrHandler(err, true, "", false)
 			fmt.Println(itm[1], "of", parent, "updated successfully.")
 		})

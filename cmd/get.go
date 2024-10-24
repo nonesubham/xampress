@@ -19,7 +19,7 @@ Use this command to view the default database credentials and
 installation details stored in the configuration file.
 `,
 	Run: func(cmd *cobra.Command, args []string) {
-			val, err := helpers.GetAll()
+			val, err := helpers.GetAllConf()
 			helpers.ErrHandler(err, true, "", false)
 			for key, value := range val {
 				fmt.Println(key, ":-")

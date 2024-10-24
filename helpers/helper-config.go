@@ -32,7 +32,7 @@ func LoadConfig() error {
 }
 
 
-func Get(key string) (interface{}, error) {
+func GetConf(key string) (interface{}, error) {
 	if err := LoadConfig(); err != nil {
 		return nil, err
 	}
@@ -45,7 +45,7 @@ func Get(key string) (interface{}, error) {
 }
 
 
-func Set(key string, value interface{}) error {
+func SetConf(key string, value interface{}) error {
 	
 	if err := LoadConfig(); err != nil {
 		return err
@@ -61,7 +61,7 @@ func Set(key string, value interface{}) error {
 }
 
 // GetAll retrieves all key-value pairs from the configuration file.
-func GetAll() (map[string]any, error) {
+func GetAllConf() (map[string]any, error) {
 	if err := LoadConfig(); err != nil {
 		return nil, err
 	}
