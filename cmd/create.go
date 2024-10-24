@@ -1,42 +1,40 @@
-package cmd
+/*
+Copyright © 2024 Subham nullsubham@gmail.com
 
+*/
+package cmd
+ 
 import (
 	"fmt"
-	"os"
-	"xampress/utils"
 
 	"github.com/spf13/cobra"
 )
 
-func init() {
-	rootCmd.AddCommand(createWP)
-}
+// createCmd represents the create command
+var createCmd = &cobra.Command{
+	Use:   "create",
+	Short: "A brief description of your command",
+	Long: `A longer description that spans multiple lines and likely contains examples
+and usage of using your command. For example:
 
-var createWP = &cobra.Command{
-	Use:   "create [projectname]",
-	Short: "Create A New WordPress Site",
-	Long:  `Create New WordPress Site On XAMPP.`,
+Cobra is a CLI library for Go that empowers applications.
+This application is a tool to generate the needed files
+to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		if len(args) == 1 {
-			utils.Start_xampp()
-			defer utils.Stop_xampp()
-			createAction(args[0])
-		} else {
-			fmt.Println("Please Enter A Project Name\nExample:\nxampress create <ProjectName>")
-		}
+		fmt.Println("create called")
 	},
 }
 
-func createAction(projName string) {
-	var db_name, fldr_name string = utils.GenProj(projName)
-	if utils.ChkDB(db_name){
-		utils.PrintScrn("'"+db_name+"' named database already exists..", "red",0,false)
-		os.Exit(0)
-	}
-	utils.PrintScrn("Creating '"+fldr_name+"' folder & downloading latest WordPress release...\n","cyan", 0, false)
-	utils.WPDown(projName)
-	utils.PrintScrn("Creating '"+db_name+"' Database for site\n","cyan", 0, false)
-	utils.CreateDBase(db_name)
-	utils.PrintScrn("Creating new user and installing Database...\n","cyan", 0, false)
-	utils.WPInstall(projName)
+func init() {
+	rootCmd.AddCommand(createCmd)
+
+	// Here you will define your flags and configuration settings.
+
+	// Cobra supports Persistent Flags which will work for this command
+	// and all subcommands, e.g.:
+	// createCmd.PersistentFlags().String("foo", "", "A help for foo")
+
+	// Cobra supports local flags which will only run when this command
+	// is called directly, e.g.:
+	// createCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }

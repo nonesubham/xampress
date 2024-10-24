@@ -1,35 +1,40 @@
+/*
+Copyright © 2024 Subham nullsubham@gmail.com
+
+*/
 package cmd
 
 import (
 	"fmt"
-	"xampress/utils"
+
 	"github.com/spf13/cobra"
 )
 
-func init() {
-	rootCmd.AddCommand(server)
-}
+// serverCmd represents the server command
+var serverCmd = &cobra.Command{
+	Use:   "server",
+	Short: "A brief description of your command",
+	Long: `A longer description that spans multiple lines and likely contains examples
+and usage of using your command. For example:
 
-var server = &cobra.Command{
-	Use:   "server [start/stop]",
-	Short: "Control XAMPP server",
-	Long:  `Control MYSQL & Apache server of XAMPP.`,
+Cobra is a CLI library for Go that empowers applications.
+This application is a tool to generate the needed files
+to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		if len(args) == 1 {
-			serverAction(args[0])
-		} else {
-			fmt.Println("Please enter a valid command\nExample:\nxampress server start/stop")
-		}
+		fmt.Println("server called")
 	},
 }
-func serverAction(usr_inp string){
-	if usr_inp == "start"{
-		utils.Start_xampp()
-		utils.PrintScrn("XAMPP started successfully..","green", 0, false)
-	} else if usr_inp =="stop"{
-		utils.Stop_xampp()
-		utils.PrintScrn("XAMPP stopped successfully..","green", 0, false)
-	}else{
-		fmt.Println("Please enter a valid command\nExample:\nxampress server start/stop")
-	}
+
+func init() {
+	rootCmd.AddCommand(serverCmd)
+
+	// Here you will define your flags and configuration settings.
+
+	// Cobra supports Persistent Flags which will work for this command
+	// and all subcommands, e.g.:
+	// serverCmd.PersistentFlags().String("foo", "", "A help for foo")
+
+	// Cobra supports local flags which will only run when this command
+	// is called directly, e.g.:
+	// serverCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
