@@ -2,14 +2,14 @@
 setlocal enabledelayedexpansion
 
 rem List of OS/Arch combinations to build
-set targets=linux/amd64 linux/386 linux/arm linux/arm64 windows/amd64 windows/386 darwin/amd64 darwin/arm64
+set targets=linux/amd64 linux/arm64 windows/amd64 darwin/amd64 darwin/arm64
 
 rem Build the binary for each target
 for %%t in (%targets%) do (
     for /f "tokens=1,2 delims=/" %%a in ("%%t") do (
         set "os=%%a"
         set "arch=%%b"
-        set "output_name=hello-!os!-!arch!"
+        set "output_name=xampress-!os!-!arch!"
 
         if "!os!" == "windows" (
             set "output_name=!output_name!.exe"

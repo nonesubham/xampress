@@ -1,9 +1,7 @@
 package cmd
 
 import (
-	"encoding/json"
 	"os"
-	"runtime"
 	"xampress/utils"
 
 	"github.com/spf13/cobra"
@@ -11,44 +9,52 @@ import (
 
 var (
 	rootCmd = &cobra.Command{
-		Use:   "XamPress [Create/Delete/Clone] <Project Name>",
-		Short: "XamPress is a CLI tool for managing WordPress sites on Xampp",
-		Long: `Xampress automates WordPress project management within the XAMPP environment, offering a user-friendly command-line interface (CLI) for seamless automation. This tool simplifies the installation process, swiftly configuring WordPress instances on XAMPP with ease. With Xampress, developers can effortlessly create and manage WordPress projects, accelerating development workflows and boosting productivity.
-		
-		view this project on github: https://github.com/nonesubham/xampress
-		`,
+		Use:   "xampress",
+		Short: "XamPress is a standalone CLI tool for managing local WordPress sites",
+		Long: `XamPress automates local WordPress project management using either a built-in
+Standalone environment (portable PHP, MySQL & WP-CLI in ~/.xampress) or an
+existing XAMPP installation.
+
+View this project on GitHub: https://github.com/nonesubham/xampress`,
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			if cmd.Name() == "help" {
+				return
+			}
+			for _, a := range os.Args[1:] {
+				if a == "--help" || a == "-h" {
+					return
+				}
+			}
+			// If user runs `xampress config --setup`, let config command handle it directly
+			if cmd.Name() == "config" && setupFlag {
+				return
+			}
+			if err := utils.EnsureSetup(false); err != nil {
+				utils.PrintScrn(err.Error()+"\n", "red", 0, false)
+				os.Exit(1)
+			}
+		},
+		Run: func(cmd *cobra.Command, args []string) {
+			_ = cmd.Help()
+		},
 	}
 )
 
 func init() {
-	var xamp_dir string
-
-	switch runtime.GOOS {
-	case "windows":
-		xamp_dir = "C:/xampp"
-	case "darwin":
-		xamp_dir = "/Applications/XAMPP/"
-	case "linux":
-		xamp_dir = "/Applications/XAMPP/"
-	}
-	os.Chdir(xamp_dir)
-	if _, err := os.Stat("xampress/config.json"); os.IsNotExist(err) {
-		file, errj := os.Create("xampress/config.json")
-		utils.Chk_error(errj, "Error while creating 'config.json'")
-		defer file.Close()
-		defConf := (utils.Config{Db_user: "root", Db_pass: "", Wp_user: "root", Wp_pass: "root", Wp_email: "example@domain.com", Xampp: xamp_dir})
-		enc_data, _ := json.Marshal(defConf)
-		_, errw := file.Write(enc_data)
-		utils.Chk_error(errw, "Encountering while writing data in 'config.json'")
-	}
 	confData := utils.GetConf()
 	rootCmd.AddCommand(configCMD)
 	configCMD.Flags().StringVar(&sql_user, "sql-user", confData.Db_user, "Set MySQL username")
 	configCMD.Flags().StringVar(&sql_pass, "sql-pass", confData.Db_pass, "Set MySQL password")
-	configCMD.Flags().StringVar(&wp_user, "wp-user", confData.Wp_user, "Set WordPress username")
-	configCMD.Flags().StringVar(&wp_pass, "wp-pass", confData.Wp_pass, "Set WordPress password")
-	configCMD.Flags().StringVar(&wp_email, "wp-email", confData.Wp_email, "Set WordPress email")
-	configCMD.Flags().StringVar(&xampp_path, "xampp-dir", confData.Xampp, "Set XAMPP path")
+	configCMD.Flags().StringVar(&sql_host, "sql-host", confData.Db_host, "Set MySQL host")
+	configCMD.Flags().IntVar(&sql_port, "sql-port", confData.Db_port, "Set MySQL port")
+	configCMD.Flags().StringVar(&wp_user, "wp-user", confData.Wp_user, "Set WordPress admin username")
+	configCMD.Flags().StringVar(&wp_pass, "wp-pass", confData.Wp_pass, "Set WordPress admin password")
+	configCMD.Flags().StringVar(&wp_email, "wp-email", confData.Wp_email, "Set WordPress admin email")
+	configCMD.Flags().StringVar(&xampp_path, "xampp-dir", confData.Xampp, "Set XAMPP path (for xampp mode)")
+	configCMD.Flags().StringVar(&sites_dir, "sites-dir", confData.SitesDir, "Set WordPress sites directory")
+	configCMD.Flags().StringVar(&run_mode, "mode", confData.Mode, "Set mode: 'standalone' or 'xampp'")
+	configCMD.Flags().IntVar(&srv_port, "port", confData.ServerPort, "Set default PHP server port")
+	configCMD.Flags().BoolVar(&setupFlag, "setup", false, "Re-run the interactive first-time setup wizard")
 }
 
 func Execute() error {

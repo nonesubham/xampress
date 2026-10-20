@@ -1,9 +1,10 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
-	"strings"
 	"xampress/utils"
 
 	"github.com/spf13/cobra"
@@ -15,27 +16,47 @@ func init() {
 
 var listWP = &cobra.Command{
 	Use:   "list",
-	Short: "Get all installed WordPress site lists..",
-	Long:  `Get all installed WordPress site lists from 'htdocs'`,
+	Short: "List all installed WordPress and Laravel projects",
+	Long:  `Lists all installed WordPress and Laravel projects in the configured sites directory.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		listAction()
-
 	},
 }
 
+type siteEntry struct {
+	Folder string
+	Type   string
+}
+
 func listAction() {
-	folders, ht_err := os.ReadDir("htdocs")
-	utils.Chk_error(ht_err, "Can't able to fetch folders from 'htdocs'")
-	var sites []string
-	for _, folder := range folders{
-		if _, stat_err := os.Stat("htdocs/"+folder.Name()+"/wp-config.php"); !os.IsNotExist(stat_err){
-			sites= append(sites, folder.Name())
+	sitesDir := utils.GetConf().SitesDir
+	_ = os.MkdirAll(sitesDir, 0755)
+	folders, htErr := os.ReadDir(sitesDir)
+	utils.Chk_error(htErr, "Unable to read sites directory: "+sitesDir)
+
+	var sites []siteEntry
+	for _, folder := range folders {
+		if !folder.IsDir() {
+			continue
+		}
+		sitePath := filepath.Join(sitesDir, folder.Name())
+		pType := utils.DetectProjectType(sitePath)
+		if pType != "" {
+			sites = append(sites, siteEntry{
+				Folder: folder.Name(),
+				Type:   pType,
+			})
 		}
 	}
-	utils.PrintScrn("There are total "+ strconv.Itoa(len(sites))+" WordPress Sites..\n", "yellow", 0, false)
-	for i,f := range sites{
 
-		utils.PrintScrn(strconv.Itoa(i+1)+". ", "white", 0, false)
-		utils.PrintScrn(strings.Title(strings.ReplaceAll(f,"-"," "))+"\n", "magenta", 0, false)
+	utils.PrintScrn(fmt.Sprintf("Total %s project(s) in %s:\n", strconv.Itoa(len(sites)), sitesDir), "yellow", 0, false)
+	for i, s := range sites {
+		utils.PrintScrn(fmt.Sprintf("  %d. ", i+1), "white", 0, false)
+		badgeColor := "green"
+		if s.Type == utils.ProjectTypeLaravel {
+			badgeColor = "cyan"
+		}
+		utils.PrintScrn(fmt.Sprintf("[%s] ", utils.TitleCase(s.Type)), badgeColor, 0, false)
+		utils.PrintScrn(fmt.Sprintf("%s (%s)\n", utils.TitleCase(s.Folder), s.Folder), "magenta", 0, false)
 	}
 }
