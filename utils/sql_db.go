@@ -2,48 +2,72 @@ package utils
 
 import (
 	"database/sql"
-
+	"fmt"
+	"strings"
+	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 )
 
-//Connect to db
+func buildDSN(cfg Config) string {
+	return fmt.Sprintf("%s:%s@tcp(%s:%d)/", cfg.Db_user, cfg.Db_pass, cfg.Db_host, cfg.Db_port)
+}
+
+func quoteIdent(ident string) string {
+	safe := strings.ReplaceAll(ident, "`", "")
+	return "`" + safe + "`"
+}
+
+// IsMySQLRunning checks if the configured MySQL server is currently accepting connections.
+func IsMySQLRunning() bool {
+	cfg := GetConf()
+	db, err := sql.Open("mysql", buildDSN(cfg))
+	if err != nil {
+		return false
+	}
+	defer db.Close()
+	db.SetConnMaxLifetime(2 * time.Second)
+	return db.Ping() == nil
+}
+
+// connDB opens a connection to the configured MySQL server.
 func connDB() *sql.DB {
-	var csf_data Config = GetConf()
-	var db_uri string = csf_data.Db_user + ":" + csf_data.Db_pass + "@/mysql"
-	db, err := sql.Open("mysql", db_uri)
+	cfg := GetConf()
+	db, err := sql.Open("mysql", buildDSN(cfg))
 	Chk_error(err, "Error opening database connection, check your database credentials")
 	return db
 }
-//Create database
+
+// CreateDBase creates a new database if it does not already exist.
 func CreateDBase(dbName string) {
-	var db *sql.DB = connDB()
-	defer db.Close() 
+	db := connDB()
+	defer db.Close()
 	stus := db.Ping()
-	
-	Chk_error(stus, "Encountering error while connecting to MYSQL server, check your database credentials")
-	_, err := db.Exec("CREATE DATABASE " + dbName)
-	Chk_error(err, "Unable to create databse")
+	Chk_error(stus, "Error connecting to MySQL server, check your database credentials")
+	_, err := db.Exec("CREATE DATABASE IF NOT EXISTS " + quoteIdent(dbName))
+	Chk_error(err, "Unable to create database "+dbName)
 }
-//Check database already exists
-func ChkDB(db_name string)bool{
-	var db *sql.DB = connDB()
-	defer db.Close() 
+
+// ChkDB checks whether a database with db_name already exists.
+func ChkDB(db_name string) bool {
+	db := connDB()
+	defer db.Close()
 	stus := db.Ping()
-	Chk_error(stus, "Encountering error while connecting to MYSQL server.")
-	res,_ := db.Query("SHOW DATABASES LIKE '"+db_name+"';")
-	if res.Next(){
-		return true
-	}else{
+	Chk_error(stus, "Error connecting to MySQL server.")
+	res, err := db.Query("SHOW DATABASES LIKE ?", db_name)
+	if err != nil {
 		return false
 	}
+	defer res.Close()
+	return res.Next()
 }
-//Delete database
-func DeleteDBase(db_name string){
-	var db *sql.DB = connDB()
-	defer db.Close() 
+
+// DeleteDBase drops the specified database.
+func DeleteDBase(db_name string) {
+	db := connDB()
+	defer db.Close()
 	stus := db.Ping()
-	Chk_error(stus, "Encountering error while connecting to MYSQL server.")
-	_, err := db.Exec("DROP DATABASE " + db_name)
-	Chk_error(err, "Unable to delete databse")
+	Chk_error(stus, "Error connecting to MySQL server.")
+	_, err := db.Exec("DROP DATABASE IF EXISTS " + quoteIdent(db_name))
+	Chk_error(err, "Unable to delete database "+db_name)
 }

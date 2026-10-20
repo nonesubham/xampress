@@ -2,102 +2,211 @@
 
 <p align="center"><img src="https://socialify.git.ci/nonesubham/xampress/image?font=Source%20Code%20Pro&amp;language=1&amp;name=1&amp;owner=1&amp;pattern=Plus&amp;stargazers=1&amp;theme=Auto" alt="project-image"></p>
 
-Xampress is a Command Line Interface (CLI) tool designed to simplify the management of local WordPress site installations on [XAMPP](https://www.apachefriends.org/) . By leveraging the power of [WP-CLI](https://github.com/wp-cli/wp-cli/) Xampress streamlines common tasks such as site setup configuration and maintenance making it easier for developers to work with local WordPress environments.
+**XamPress** is a standalone Command Line Interface (CLI) tool designed to simplify creating, running, cloning, and managing local **WordPress** and **Laravel** projects.
 
+Unlike traditional setups that require installing and configuring XAMPP manually, XamPress supports **two modes** chosen on first run:
+1. **Standalone Mode (Recommended)**: Automatically downloads and configures portable **PHP**, **MySQL/MariaDB**, **WP-CLI**, and **Composer** with a live progress bar into `~/.xampress`, stores projects in `~/.xampress/sites`, and serves them directly using PHP's built-in web server (`php -S`).
+2. **XAMPP Mode**: Integrates with an existing local [XAMPP](https://www.apachefriends.org/) installation.
+
+---
 
 ## Features
 
-- Automated Site Installation: Quickly set up new WordPress sites on your local XAMPP server with a single command.
-- Automated Site Deletion: Quickly delete WordPress sites from your local XAMPP server with a single command.
-- Configuration Handling: Auto configure wp-config.php files and other essential settings.
-- Cloning : Clone any existing site in one click. **(Working on)**
-- Backup and Restore: Create backups of your site and restore them when needed. **(Soon)**
-- Custom Domains: Instead of http://localhost/project-name use custom domain like http://project-name.local **(Soon)**
+- **WordPress & Laravel Support**: Create either a **WordPress** site or a **Laravel** application interactively with `xampress create <name>`.
+- **Wrapped Laravel Artisan CLI (`xampress artisan`)**: Run `xampress artisan <command>` using XamPress's portable PHP runtime—automatically validates that the project directory contains a valid `xampress.json` (`"type": "laravel"`) and `artisan` script before executing.
+- **Zero-Dependency Standalone Mode**: Works out of the box from any directory—automatically downloads portable PHP 8.3, MySQL/MariaDB, WP-CLI, and Composer into `~/.xampress` with a progress bar.
+- **Interactive First-Run Wizard**: Prompts you on first launch to choose between **Standalone Mode** or **XAMPP Mode**.
+- **Built-in PHP Development Server**: Start any WordPress or Laravel project on a configurable port (`xampress server start <site> --port 8000`) or expose it on your local network (`0.0.0.0`) with `-n`.
+- **Automated Project Creation, Cloning & Deletion**: Set up, clone, or remove complete WordPress/Laravel installations and MySQL databases with a single command.
 
+---
 
 ## Release Files
 
+Download the prebuilt binary for your operating system from **[Releases](https://github.com/nonesubham/xampress/releases/)**.
 
-You can find suitable binary for your Operating System at **[Release](https://github.com/nonesubham/xampress/releases/)**.
+---
 
+## Build From Source
 
-## Build Your Own Binary
-### Prerequisite
-- Language : [GO](https://go.dev/doc/install)
+### Prerequisites
+- [Go 1.22+](https://go.dev/doc/install)
 
-<br>
+### Steps
+```bash
+# Clone the repository
+git clone https://github.com/nonesubham/xampress.git
+cd xampress
 
-**Clone this repo**
-```
-git clone github.com/nonesubham/xampress@latest
-```
->Open terminal/console inside xampress
-
-**Install all dependencies**
-```
+# Install dependencies
 go mod tidy
-```
-**Check working or not**
-```
-go run main.go
-```
-If everything is fine you will get an error : 
 
-> XamPress is not inside XAMP/LAMP directory, please follow installation guide. https://github.com/nonesubham/xampress/readMe.md
-
-**Build your own binary**
-```
-go build
-```
-After executing this command `xampress` named binary will generate in project folder, if every step followed. then just follow **Installation** Step.
-## Setup
-Before starting the project, ensure you have installed the XAMPP server on your local machine by downloading it from the [XAMPP website](https://www.apachefriends.org/). Once XAMPP is installed, download the xampress binary. Next, navigate to the root directory of your XAMPP installation and create a new folder named `xampress`. Move the downloaded xampress binary into this newly created `xampress` folder. Now add this path to your `PATH` environment variable.
-
-**For example :**
-
-if you are a **Windows** user then you should have to add this path in your `PATH` environment variable.
->C:/xamp/xampress 
-## Usage/Examples
-
-**To create/delete new WordPress site/project :** 
-``` 
-xampress create/delete site-name
+# Build the binary
+go build -o xampress main.go
 ```
 
-**To get list of all WordPress existing site/project :** 
-``` 
+Move the `xampress` (or `xampress.exe` on Windows) binary anywhere in your system `PATH` (for example `/usr/local/bin` on Linux/macOS or a directory in your Windows `PATH`).
+
+---
+
+## First-Run Setup
+
+The first time you run any `xampress` command, the interactive setup wizard will launch:
+
+```text
+========================================================
+           Welcome to XamPress First-Run Setup          
+========================================================
+
+Choose how you want to run XamPress:
+  [1] Standalone Mode (Recommended)
+      Downloads portable PHP, MySQL & WP-CLI into ~/.xampress
+      Uses built-in PHP server (`php -S`) and stores sites in ~/.xampress/sites
+  [2] XAMPP Mode
+      Uses an existing local XAMPP installation
+
+Select mode [1/2] (default: 1):
+```
+
+You can re-run this setup wizard at any time with:
+```bash
+xampress config --setup
+```
+
+---
+
+## Usage & Examples
+
+### 1. Create a New WordPress or Laravel Project
+```bash
+xampress create my-project
+```
+XamPress will prompt you to choose the project framework:
+```text
+Select project type:
+  1. WordPress
+  2. Laravel
+Enter choice [1/2] (default: 1):
+```
+- **WordPress (`1`)**: Downloads WordPress core via WP-CLI, creates the MySQL database, configures `wp-config.php`, installs WordPress, and writes `xampress.json`.
+- **Laravel (`2`)**: Automatically downloads `composer.phar` (if not yet installed), scaffolds `laravel/laravel`, creates the MySQL database, configures `.env`, writes `xampress.json` (`"type": "laravel"`), and runs initial migrations (`php artisan migrate`).
+
+### 2. Run Laravel Artisan Commands (`xampress artisan`)
+XamPress wraps Laravel's `artisan` CLI and **only executes if the target project directory is validated as a Laravel project via its `xampress.json` file**:
+```bash
+# Run from inside the Laravel project directory
+cd ~/.xampress/sites/my-laravel-app
+xampress artisan migrate
+xampress artisan make:model Post -mcr
+
+# Or run from anywhere by passing --site / -s
+xampress artisan --site my-laravel-app route:list
+xampress art -s my-laravel-app make:controller PostController
+```
+
+### 3. Start / Stop the Server for a Project
+Start the built-in PHP server (`php -S`) and MySQL database for any WordPress or Laravel project:
+```bash
+# Start on default port (http://localhost:8000)
+xampress server start my-project
+
+# Start on a custom port (http://localhost:8080)
+xampress server start my-project --port 8080
+
+# Expose server on local network (0.0.0.0) using -n / --network
+xampress server start my-project -n
+
+# Run in foreground (Ctrl+C to stop)
+xampress server start my-project --foreground
+```
+
+Stop the running PHP server and database:
+```bash
+xampress server stop
+```
+
+### 4. List All Installed Projects
+```bash
 xampress list
 ```
 
-**To start/stop XAMPP server :** 
-``` 
-xampress server start/stop
+### 5. Clone an Existing Project
+```bash
+xampress clone my-project my-project-staging
 ```
-**To add custom WordPress's user credentials or Database credentials :**
-``` 
-xampress config <flags>
+
+### 6. Delete a Project
+```bash
+xampress delete my-project
 ```
-***Available Flags :-***
->--sql-user : Set MySQL username
 
->--sql-pass : Set MySQL password
+### 7. View or Update Configuration
+```bash
+# View current configuration
+xampress config
 
->--wp-user : Set WordPress username
+# Update credentials or default port
+xampress config --wp-user admin --wp-pass secret123 --wp-email dev@example.com --port 8080
+```
 
->--wp-pass : Set WordPress password
+#### Available `config` Flags:
+| Flag | Description |
+| :--- | :--- |
+| `--setup` | Re-run the interactive first-time setup wizard |
+| `--mode` | Switch mode (`standalone` or `xampp`) |
+| `--port` | Set default PHP server port (default: `8000`) |
+| `--sites-dir` | Set custom directory for projects |
+| `--xampp-dir` | Set XAMPP installation directory (when in `xampp` mode) |
+| `--sql-user` | Set MySQL username (default: `root`) |
+| `--sql-pass` | Set MySQL password |
+| `--sql-host` | Set MySQL host (default: `127.0.0.1`) |
+| `--sql-port` | Set MySQL port (default: `3307` in standalone, `3306` in XAMPP) |
+| `--wp-user` | Set default WordPress admin username |
+| `--wp-pass` | Set default WordPress admin password |
+| `--wp-email` | Set default WordPress admin email |
 
->--wp-email : Set WordPress email
+---
+
+## Project Validation File (`xampress.json`)
+
+Every project created by XamPress contains a `xampress.json` metadata file in its root directory:
+```json
+{
+  "name": "my-project",
+  "type": "laravel",
+  "db_name": "my_project",
+  "created_at": "2026-10-20T22:05:00+05:30"
+}
+```
+When running `xampress artisan`, XamPress validates that `xampress.json` exists in the project directory with `"type": "laravel"` alongside the `artisan` script before executing any command.
+
+---
+
+## Directory Structure (`~/.xampress`)
+
+In **Standalone Mode**, XamPress keeps everything neatly organized in your home directory under `~/.xampress` (customizable via the `XAMPRESS_HOME` environment variable):
+- `~/.xampress/config.json` — Global configuration file
+- `~/.xampress/sites/` — All created WordPress and Laravel projects
+- `~/.xampress/bin/php/` — Portable PHP CLI binary
+- `~/.xampress/bin/mysql/` — Portable MySQL/MariaDB server & client binaries
+- `~/.xampress/bin/wp-cli.phar` — WP-CLI executable archive
+- `~/.xampress/bin/composer.phar` — Composer executable archive (for Laravel)
+- `~/.xampress/mysql-data/` — Local MySQL data directory
+- `~/.xampress/run/` — Runtime PID files, router scripts, and server logs
+
+---
 
 ## TODO
 
-- [ ] Existing Project/Site Cloning.
-- [ ] Backup and Restore of existing projects.
-- [ ] Custom domain mapping for each site/project.
-- [ ] Token based login or no credential login.
+- [x] Standalone mode with portable PHP, MySQL, WP-CLI & Composer installer
+- [x] Built-in PHP server (`php -S`) per-site runner with `-n` (`0.0.0.0`) network flag
+- [x] Laravel project creation & validated `xampress artisan` wrapper
+- [x] Existing project/site cloning (`xampress clone`)
+- [ ] Backup and restore of existing projects (`zip` + SQL dump)
+- [ ] One-click / magic login URL generation
 
+---
 
 ## Support
 
-For support, contact me on [Telegram](https://t.me/nonesubham) or raise issue on this repository.
-
-
+For support, contact me on [Telegram](https://t.me/nonesubham) or open an issue on this repository.

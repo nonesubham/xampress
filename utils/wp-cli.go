@@ -1,28 +1,78 @@
 package utils
 
 import (
-
+	"fmt"
 	"os/exec"
 	"strings"
 )
 
 func wpConf(projName string) bool {
-	var base_db, base_fldr string = GenProj(projName)
-	var confData Config = GetConf()
+	baseDb, baseFldr := GenProj(projName)
+	cfg := GetConf()
+	sitePath := SiteDir(baseFldr)
+	dbHost := fmt.Sprintf("%s:%d", cfg.Db_host, cfg.Db_port)
 
-	cmd := exec.Command("php/php", "php/wp-cli.phar", "config", "create", "--dbuser="+confData.Db_user, "--dbpass="+confData.Db_pass, "--dbname="+base_db, "--path=htdocs/"+base_fldr)
-	_, err := cmd.CombinedOutput()
+	args := []string{
+		cfg.WpCliPath,
+		"config",
+		"create",
+		"--dbuser=" + cfg.Db_user,
+		"--dbpass=" + cfg.Db_pass,
+		"--dbname=" + baseDb,
+		"--dbhost=" + dbHost,
+		"--path=" + sitePath,
+	}
 
-	Chk_error(err, "Encountering error while executing WP-Cli command ")
+	cmd := exec.Command(cfg.PhpBin, args...)
+	out, err := cmd.CombinedOutput()
+	Chk_error(err, "Error executing WP-CLI config create: "+strings.TrimSpace(string(out)))
 	return true
 }
-func WPInstall(projName string) {
-	var _, base_fldr string = GenProj(projName)
-	wpConf(projName)
-	var confData Config = GetConf()
-	cmd := exec.Command("php/php", "php/wp-cli.phar", "core", "install", "--url=http://localhost/"+base_fldr, "--title="+strings.Title(projName), "--admin_user="+confData.Wp_user, "--admin_password="+confData.Wp_pass, "--admin_email="+confData.Wp_email, "--path=htdocs/"+base_fldr)
-	_, err := cmd.CombinedOutput()
-	Chk_error(err, "Encountering error while executing WP-Cli command Install")
-	PrintScrn("'"+projName+"' site created successfully.\nUrl : http://localhost/"+base_fldr+"\nDashboard Url : http://localhost/"+base_fldr+"/wp-admin\nDashboard Username : "+confData.Wp_user+"\nDashboard Password : "+confData.Wp_pass, "green", 0, false)
 
+// WPInstall configures wp-config.php and runs `wp core install` for a new site.
+func WPInstall(projName string) {
+	baseDb, baseFldr := GenProj(projName)
+	wpConf(projName)
+	cfg := GetConf()
+	sitePath := SiteDir(baseFldr)
+
+	siteURL := fmt.Sprintf("http://localhost:%d", cfg.ServerPort)
+
+	args := []string{
+		cfg.WpCliPath,
+		"core",
+		"install",
+		"--url=" + siteURL,
+		"--title=" + TitleCase(projName),
+		"--admin_user=" + cfg.Wp_user,
+		"--admin_password=" + cfg.Wp_pass,
+		"--admin_email=" + cfg.Wp_email,
+		"--skip-email",
+		"--path=" + sitePath,
+	}
+
+	cmd := exec.Command(cfg.PhpBin, args...)
+	out, err := cmd.CombinedOutput()
+	Chk_error(err, "Error executing WP-CLI core install: "+strings.TrimSpace(string(out)))
+
+	_ = WriteProjectConfig(sitePath, ProjectConfig{
+		Name:   baseFldr,
+		Type:   ProjectTypeWordPress,
+		DbName: baseDb,
+	})
+
+	PrintScrn(fmt.Sprintf("\n'%s' WordPress site created successfully!\n", projName), "green", 0, false)
+	PrintScrn(fmt.Sprintf("  Site Directory     : %s\n", sitePath), "white", 0, false)
+	PrintScrn(fmt.Sprintf("  Dashboard Username : %s\n", cfg.Wp_user), "cyan", 0, false)
+	PrintScrn(fmt.Sprintf("  Dashboard Password : %s\n", cfg.Wp_pass), "cyan", 0, false)
+	PrintScrn(fmt.Sprintf("  Start PHP Server   : xampress server start %s\n\n", baseFldr), "yellow", 0, false)
+}
+
+// UpdateSiteURL updates WordPress `home` and `siteurl` options to match the active PHP server port.
+func UpdateSiteURL(baseFldr string, siteURL string) {
+	cfg := GetConf()
+	sitePath := SiteDir(baseFldr)
+
+	_ = exec.Command(cfg.PhpBin, cfg.WpCliPath, "option", "update", "home", siteURL, "--path="+sitePath).Run()
+	_ = exec.Command(cfg.PhpBin, cfg.WpCliPath, "option", "update", "siteurl", siteURL, "--path="+sitePath).Run()
 }
