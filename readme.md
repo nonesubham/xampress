@@ -13,10 +13,12 @@ Unlike traditional setups that require installing and configuring XAMPP manually
 ## Features
 
 - **WordPress & Laravel Support**: Create either a **WordPress** site or a **Laravel** application interactively with `xampress create <name>`.
+- **WordPress Magic Login (`auth.php`)**: Instant passwordless admin login via `http://<project>.local/auth.php?project=<project>` or `xampress login <project>`—loads WordPress core (`wp-load.php`), creates the admin auth session via `wp_set_auth_cookie()`, and redirects straight to `/wp-admin`.
+- **Multi-Project `.local` Domains (Zero Nginx/Apache)**: Run multiple projects simultaneously—each project automatically gets its own `<project-name>.local` domain via a lightweight built-in Go mDNS responder (`UDP 5353`), HTTP reverse proxy, and hosts manager.
 - **Wrapped Laravel Artisan CLI (`xampress artisan`)**: Run `xampress artisan <command>` using XamPress's portable PHP runtime—automatically validates that the project directory contains a valid `xampress.json` (`"type": "laravel"`) and `artisan` script before executing.
 - **Zero-Dependency Standalone Mode**: Works out of the box from any directory—automatically downloads portable PHP 8.3, MySQL/MariaDB, WP-CLI, and Composer into `~/.xampress` with a progress bar.
 - **Interactive First-Run Wizard**: Prompts you on first launch to choose between **Standalone Mode** or **XAMPP Mode**.
-- **Built-in PHP Development Server**: Start any WordPress or Laravel project on a configurable port (`xampress server start <site> --port 8000`) or expose it on your local network (`0.0.0.0`) with `-n`.
+- **Built-in PHP Development Server**: Start any WordPress or Laravel project on an auto-assigned or custom port (`xampress server start <site> --port 8000`) or expose `<site>.local` across your local network (`0.0.0.0`) with `-n`.
 - **Automated Project Creation, Cloning & Deletion**: Set up, clone, or remove complete WordPress/Laravel installations and MySQL databases with a single command.
 
 ---
@@ -104,28 +106,41 @@ xampress artisan --site my-laravel-app route:list
 xampress art -s my-laravel-app make:controller PostController
 ```
 
-### 3. Start / Stop the Server for a Project
-Start the built-in PHP server (`php -S`) and MySQL database for any WordPress or Laravel project:
+### 3. Start / Stop Multiple Projects & `<project>.local` Domains
+Start the built-in PHP server (`php -S`) and `.local` domain router for one or more WordPress or Laravel projects simultaneously:
 ```bash
-# Start on default port (http://localhost:8000)
-xampress server start my-project
+# Start first project -> http://my-blog.local
+xampress server start my-blog
 
-# Start on a custom port (http://localhost:8080)
-xampress server start my-project --port 8080
+# Start a second project at the same time -> http://my-shop.local
+xampress server start my-shop
 
-# Expose server on local network (0.0.0.0) using -n / --network
-xampress server start my-project -n
+# Expose http://my-blog.local across your local network (0.0.0.0 + LAN mDNS) using -n / --network
+xampress server start my-blog -n
 
-# Run in foreground (Ctrl+C to stop)
-xampress server start my-project --foreground
-```
+# Check all currently running projects and their .local domains
+xampress server status
 
-Stop the running PHP server and database:
-```bash
+# Stop a single project while keeping others running
+xampress server stop my-blog
+
+# Stop all running projects, .local router, and database
 xampress server stop
 ```
 
-### 4. List All Installed Projects
+### 4. WordPress Magic Login (`auth.php?project=<name>`)
+Log in to any WordPress site's `/wp-admin` dashboard without typing a username or password:
+```bash
+# Open or display the magic login URL for a WordPress site
+xampress login my-blog
+```
+Or visit the URL directly in your browser:
+- `http://my-blog.local/auth.php?project=my-blog`
+- `http://localhost:8000/auth.php?project=my-blog`
+
+When visited, `auth.php` includes the target project's `wp-load.php`, resolves the administrator account, sets the authentication session cookie via `wp_set_current_user()` and `wp_set_auth_cookie()`, and redirects to `admin_url()`.
+
+### 5. List All Installed Projects
 ```bash
 xampress list
 ```
@@ -202,11 +217,12 @@ In **Standalone Mode**, XamPress keeps everything neatly organized in your home 
 - [x] Built-in PHP server (`php -S`) per-site runner with `-n` (`0.0.0.0`) network flag
 - [x] Laravel project creation & validated `xampress artisan` wrapper
 - [x] Existing project/site cloning (`xampress clone`)
+- [x] Custom `.local` domain mapping (`http://<project>.local`) for concurrent projects
+- [x] One-click / magic login URL (`auth.php?project=<name>` & `xampress login`)
 - [ ] Backup and restore of existing projects (`zip` + SQL dump)
-- [ ] One-click / magic login URL generation
 
 ---
 
 ## Support
 
-For support, contact me on [Telegram](https://t.me/nonesubham) or open an issue on this repository.
+For support, please open an issue on this repository.
