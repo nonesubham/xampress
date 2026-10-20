@@ -2,14 +2,15 @@ name: Build & Release Binaries
 
 on:
   push:
+    branches:
+      - main
     tags:
       - "v*"
   workflow_dispatch:
     inputs:
       tag:
-        description: "Release tag name (e.g. v0.2.0)"
-        required: true
-        default: "v0.2.0"
+        description: "Release tag name (e.g. v0.2.1)"
+        required: false
 
 permissions:
   contents: write
@@ -61,14 +62,29 @@ jobs:
           sha256sum xampress-* > checksums.txt
           ls -lh
 
-      - name: Determine release tag
+      - name: Determine or auto-increment release tag
         id: meta
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          git fetch --tags --force
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.tag }}" ]; then
             TAG="${{ github.event.inputs.tag }}"
-          else
+          elif [[ "${GITHUB_REF}" == refs/tags/* ]]; then
             TAG="${GITHUB_REF#refs/tags/}"
+          else
+            LATEST_TAG=$(git tag -l "v*" --sort=-v:refname | head -n 1)
+            if [ -z "$LATEST_TAG" ]; then
+              TAG="v0.1.0"
+            else
+              VERSION="${LATEST_TAG#v}"
+              IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+              MAJOR=${MAJOR:-0}
+              MINOR=${MINOR:-1}
+              PATCH=${PATCH:-0}
+              NEXT_PATCH=$((PATCH + 1))
+              TAG="v${MAJOR}.${MINOR}.${NEXT_PATCH}"
+            fi
           fi
+          echo "Using release tag: ${TAG}"
           echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
 
       - name: Create GitHub Release & Upload Binaries
