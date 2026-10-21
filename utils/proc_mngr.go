@@ -228,6 +228,18 @@ func StartSiteServer(projName string, port int, foreground bool, exposeNetwork b
 		os.Exit(1)
 	}
 
+	pcfg, _ := ReadProjectConfig(sitePath)
+	phpBin := cfg.PhpBin
+	if pcfg != nil && pcfg.Isolate && pcfg.PhpBin != "" && fileExists(pcfg.PhpBin) {
+		phpBin = pcfg.PhpBin
+	}
+
+	if pcfg != nil && pcfg.Isolate && pcfg.MysqldBin != "" {
+		if _, _, err := EnsureProjectMySQLRunning(sitePath); err != nil {
+			Chk_error(err, "Failed to start isolated MySQL: "+err.Error())
+		}
+	}
+
 	bindHost := "localhost"
 	if exposeNetwork {
 		bindHost = "0.0.0.0"
@@ -263,7 +275,7 @@ func StartSiteServer(projName string, port int, foreground bool, exposeNetwork b
 	logFile, err := os.OpenFile(filepath.Join(runDir(), fmt.Sprintf("php-%s.log", baseFldr)), os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
 	Chk_error(err, "Failed to open PHP server log file")
 
-	cmd := exec.Command(cfg.PhpBin, "-d", "upload_max_filesize=64M", "-d", "post_max_size=64M", "-d", "memory_limit=256M", "-S", bindAddr, "-t", docRoot, routerPath)
+	cmd := exec.Command(phpBin, "-d", "upload_max_filesize=64M", "-d", "post_max_size=64M", "-d", "memory_limit=256M", "-S", bindAddr, "-t", docRoot, routerPath)
 	cmd.Dir = docRoot
 	cmd.Env = append(os.Environ(), "XAMPRESS_SITES_DIR="+cfg.SitesDir)
 	if foreground {
@@ -360,6 +372,16 @@ func StopSiteServer(projName string) {
 		killProcess(state.PhpPID)
 	}
 	delete(reg.Sites, baseFldr)
+
+	// If isolated MySQL pid file exists, kill isolated MySQL
+	sitePath := SiteDir(baseFldr)
+	isoPidPath := filepath.Join(sitePath, ".xampress", "run", "mysqld.pid")
+	if pidBytes, err := os.ReadFile(isoPidPath); err == nil {
+		if pid, err := strconv.Atoi(strings.TrimSpace(string(pidBytes))); err == nil && pid > 0 {
+			killProcess(pid)
+			_ = os.Remove(isoPidPath)
+		}
+	}
 
 	if len(reg.Sites) == 0 && reg.DaemonPID > 0 {
 		killProcess(reg.DaemonPID)

@@ -30,9 +30,12 @@ type Config struct {
 	MysqlBin     string `json:"mysql_bin"`
 	MysqldBin    string `json:"mysqld_bin,omitempty"`
 	MysqlDataDir string `json:"mysql_data_dir,omitempty"`
-	WpCliPath    string `json:"wp_cli_path"`
-	ComposerPath string `json:"composer_path,omitempty"`
-	ServerPort   int    `json:"server_port"`
+	WpCliPath       string `json:"wp_cli_path"`
+	ComposerPath    string `json:"composer_path,omitempty"`
+	PhpVersion      string `json:"php_version,omitempty"`
+	MySQLVersion    string `json:"mysql_version,omitempty"`
+	ComposerVersion string `json:"composer_version,omitempty"`
+	ServerPort      int    `json:"server_port"`
 }
 
 // GetConf reads ~/.xampress/config.json and populates sensible defaults if fields are missing.
@@ -169,6 +172,11 @@ func CheckConnection() bool {
 
 // WPDown downloads WordPress core into the site's folder using WP-CLI.
 func WPDown(projName string) bool {
+	return WPDownWithVersion(projName, "", "")
+}
+
+// WPDownWithVersion downloads WordPress core with an optional version and php binary.
+func WPDownWithVersion(projName string, wpVer string, phpBin string) bool {
 	_, baseFldr := GenProj(projName)
 	if ProjExist(baseFldr) {
 		PrintScrn("'"+projName+"' site already exists, please use another name...\n", "red", 0, false)
@@ -179,7 +187,16 @@ func WPDown(projName string) bool {
 	Chk_error(ferr, "Error creating project folder "+sitePath)
 
 	cfg := GetConf()
-	downCore := exec.Command(cfg.PhpBin, cfg.WpCliPath, "core", "download", "--path="+sitePath)
+	if phpBin == "" {
+		phpBin = cfg.PhpBin
+	}
+
+	args := []string{cfg.WpCliPath, "core", "download", "--path=" + sitePath}
+	if wpVer != "" {
+		args = append(args, "--version="+wpVer)
+	}
+
+	downCore := exec.Command(phpBin, args...)
 	out, err := downCore.CombinedOutput()
 	if err != nil {
 		_ = os.RemoveAll(sitePath)

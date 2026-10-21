@@ -20,10 +20,21 @@ const (
 
 // ProjectConfig is stored in `<project-dir>/xampress.json` to identify and validate XamPress projects.
 type ProjectConfig struct {
-	Name      string `json:"name"`
-	Type      string `json:"type"`
-	DbName    string `json:"db_name"`
-	CreatedAt string `json:"created_at"`
+	Name            string `json:"name"`
+	Type            string `json:"type"`
+	DbName          string `json:"db_name"`
+	CreatedAt       string `json:"created_at"`
+	Isolate         bool   `json:"isolate,omitempty"`
+	PhpVersion      string `json:"php_version,omitempty"`
+	ComposerVersion string `json:"composer_version,omitempty"`
+	MySQLVersion    string `json:"mysql_version,omitempty"`
+	FrameworkVer    string `json:"framework_version,omitempty"`
+	PhpBin          string `json:"php_bin,omitempty"`
+	ComposerBin     string `json:"composer_bin,omitempty"`
+	MysqlBin        string `json:"mysql_bin,omitempty"`
+	MysqldBin       string `json:"mysqld_bin,omitempty"`
+	MysqlDataDir    string `json:"mysql_data_dir,omitempty"`
+	MysqlPort       int    `json:"mysql_port,omitempty"`
 }
 
 // WriteProjectConfig writes `xampress.json` inside the given project directory.
@@ -87,8 +98,17 @@ func EnsureComposerInstalled(cfg *Config) error {
 	if fileExists(cfg.ComposerPath) {
 		return nil
 	}
-	PrintScrn("\nInstalling Composer...\n", "cyan", 0, false)
-	if err := DownloadWithProgress(composerDownloadURL, cfg.ComposerPath, "Downloading Composer"); err != nil {
+	ver := cfg.ComposerVersion
+	if ver == "" {
+		ver = DefaultComposerVersion
+	}
+	url, err := GetComposerDownloadURLForVersion(ver)
+	if err != nil {
+		url = composerDownloadURL
+	}
+
+	PrintScrn(fmt.Sprintf("\nInstalling Composer (%s)...\n", ver), "cyan", 0, false)
+	if err := DownloadWithProgress(url, cfg.ComposerPath, fmt.Sprintf("Downloading Composer %s", ver)); err != nil {
 		return fmt.Errorf("failed to download Composer: %w", err)
 	}
 	_ = os.Chmod(cfg.ComposerPath, 0755)
@@ -97,6 +117,11 @@ func EnsureComposerInstalled(cfg *Config) error {
 
 // CreateLaravelProject creates a new Laravel project via Composer, configures .env, writes xampress.json, and runs initial migrations.
 func CreateLaravelProject(projName string) {
+	CreateLaravelProjectWithOptions(projName, "", "", "", false, nil)
+}
+
+// CreateLaravelProjectWithOptions creates Laravel with custom versions or isolated setup.
+func CreateLaravelProjectWithOptions(projName string, laravelVer string, phpBin string, compBin string, isolate bool, pcfg *ProjectConfig) {
 	dbName, baseFldr := GenProj(projName)
 	if ProjExist(baseFldr) {
 		PrintScrn("'"+projName+"' project folder already exists, please use another name...\n", "red", 0, false)
@@ -108,14 +133,26 @@ func CreateLaravelProject(projName string) {
 	}
 
 	cfg := GetConf()
-	if err := EnsureComposerInstalled(&cfg); err != nil {
-		Chk_error(err, err.Error())
+	if phpBin == "" {
+		phpBin = cfg.PhpBin
+	}
+	if compBin == "" {
+		if err := EnsureComposerInstalled(&cfg); err != nil {
+			Chk_error(err, err.Error())
+		}
+		compBin = cfg.ComposerPath
 	}
 
 	sitePath := SiteDir(baseFldr)
-	PrintScrn(fmt.Sprintf("Creating Laravel project '%s' via Composer...\n", baseFldr), "cyan", 0, false)
+	pkgTarget := "laravel/laravel"
+	if laravelVer != "" {
+		pkgTarget = fmt.Sprintf("laravel/laravel:%s", laravelVer)
+		PrintScrn(fmt.Sprintf("Creating Laravel project '%s' (version %s) via Composer...\n", baseFldr, laravelVer), "cyan", 0, false)
+	} else {
+		PrintScrn(fmt.Sprintf("Creating Laravel project '%s' via Composer...\n", baseFldr), "cyan", 0, false)
+	}
 
-	composerCmd := exec.Command(cfg.PhpBin, cfg.ComposerPath, "create-project", "laravel/laravel", sitePath, "--prefer-dist")
+	composerCmd := exec.Command(phpBin, compBin, "create-project", pkgTarget, sitePath, "--prefer-dist")
 	composerCmd.Stdout = os.Stdout
 	composerCmd.Stderr = os.Stderr
 	if err := composerCmd.Run(); err != nil {
@@ -132,18 +169,22 @@ func CreateLaravelProject(projName string) {
 		Chk_error(err, "Failed to configure Laravel .env: "+err.Error())
 	}
 
-	pcfg := ProjectConfig{
-		Name:   baseFldr,
-		Type:   ProjectTypeLaravel,
-		DbName: dbName,
+	if pcfg == nil {
+		pcfg = &ProjectConfig{}
 	}
-	if err := WriteProjectConfig(sitePath, pcfg); err != nil {
+	pcfg.Name = baseFldr
+	pcfg.Type = ProjectTypeLaravel
+	pcfg.DbName = dbName
+	if laravelVer != "" {
+		pcfg.FrameworkVer = laravelVer
+	}
+	if err := WriteProjectConfig(sitePath, *pcfg); err != nil {
 		Chk_error(err, "Failed to write "+ProjectConfigFile+": "+err.Error())
 	}
 
 	// Run initial migrations
 	PrintScrn("Running initial database migrations (`php artisan migrate`)...\n", "cyan", 0, false)
-	migCmd := exec.Command(cfg.PhpBin, filepath.Join(sitePath, "artisan"), "migrate", "--force")
+	migCmd := exec.Command(phpBin, filepath.Join(sitePath, "artisan"), "migrate", "--force")
 	migCmd.Dir = sitePath
 	migCmd.Stdout = os.Stdout
 	migCmd.Stderr = os.Stderr
@@ -153,6 +194,10 @@ func CreateLaravelProject(projName string) {
 	PrintScrn(fmt.Sprintf("  Project Directory : %s\n", sitePath), "white", 0, false)
 	PrintScrn(fmt.Sprintf("  Project Config    : %s\n", filepath.Join(sitePath, ProjectConfigFile)), "white", 0, false)
 	PrintScrn(fmt.Sprintf("  Database Name     : %s\n", dbName), "cyan", 0, false)
+	if isolate {
+		PrintScrn(fmt.Sprintf("  Isolated PHP       : %s\n", pcfg.PhpVersion), "magenta", 0, false)
+		PrintScrn(fmt.Sprintf("  Isolated Composer  : %s\n", pcfg.ComposerVersion), "magenta", 0, false)
+	}
 	PrintScrn(fmt.Sprintf("  Start Server      : xampress server start %s\n", baseFldr), "yellow", 0, false)
 	PrintScrn(fmt.Sprintf("  Run Artisan (CWD) : cd %s && xampress artisan <command>\n", sitePath), "yellow", 0, false)
 	PrintScrn(fmt.Sprintf("  Run Artisan       : xampress artisan --site %s <command>\n\n", baseFldr), "yellow", 0, false)
@@ -229,12 +274,17 @@ func RunArtisan(targetDir string, artisanArgs []string) {
 	}
 
 	cfg := GetConf()
+	phpBin := cfg.PhpBin
+	if pcfg.Isolate && pcfg.PhpBin != "" {
+		phpBin = pcfg.PhpBin
+	}
+
 	artisanFile := filepath.Join(targetDir, "artisan")
 	cmdArgs := append([]string{artisanFile}, artisanArgs...)
 
 	PrintScrn(fmt.Sprintf("[XamPress Laravel: %s] Running: php artisan %s\n", pcfg.Name, strings.Join(artisanArgs, " ")), "cyan", 0, false)
 
-	cmd := exec.Command(cfg.PhpBin, cmdArgs...)
+	cmd := exec.Command(phpBin, cmdArgs...)
 	cmd.Dir = targetDir
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout

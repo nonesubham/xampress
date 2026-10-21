@@ -81,17 +81,29 @@ xampress config --setup
 
 ### 1. Create a New WordPress or Laravel Project
 ```bash
+# Interactive creation with prompts for framework, version, and isolation
 xampress create my-project
+
+# Create WordPress with custom version
+xampress create my-blog --type wordpress --version 6.6
+
+# Create Laravel with custom version
+xampress create my-app --type laravel --version 11.*
+
+# Create an isolated project with dedicated PHP and MySQL/Composer inside project directory
+xampress create my-isolated-blog --type wordpress --isolate --php 8.2 --mysql 10.11
+xampress create my-isolated-app --type laravel --isolate --php 8.3 --composer 2.7
 ```
-XamPress will prompt you to choose the project framework:
+When running interactively, XamPress prompts you to choose the project framework and optional version:
 ```text
 Select project type:
   1. WordPress
   2. Laravel
 Enter choice [1/2] (default: 1):
 ```
-- **WordPress (`1`)**: Downloads WordPress core via WP-CLI, creates the MySQL database, configures `wp-config.php`, installs WordPress, and writes `xampress.json`.
-- **Laravel (`2`)**: Automatically downloads `composer.phar` (if not yet installed), scaffolds `laravel/laravel`, creates the MySQL database, configures `.env`, writes `xampress.json` (`"type": "laravel"`), and runs initial migrations (`php artisan migrate`).
+- **WordPress (`1`)**: Downloads WordPress core via WP-CLI (with optional version), creates the MySQL database, configures `wp-config.php`, installs WordPress, and writes `xampress.json`.
+- **Laravel (`2`)**: Automatically downloads `composer.phar` (if not yet installed), scaffolds `laravel/laravel` (with optional version), creates the MySQL database, configures `.env`, writes `xampress.json` (`"type": "laravel"`), and runs initial migrations (`php artisan migrate`).
+- **`--isolate`**: Downloads dedicated, project-specific portable PHP, MySQL (for WordPress on a dedicated port), and Composer (for Laravel) directly into `<project>/.xampress/bin/` so the project runs independently of the global XamPress runtimes. When `--isolate` is specified, choosing PHP, MySQL, and Composer versions is mandatory (prompts interactively or uses flags `--php`, `--mysql`, `--composer`).
 
 ### 2. Run Laravel Artisan Commands (`xampress artisan`)
 XamPress wraps Laravel's `artisan` CLI and **only executes if the target project directory is validated as a Laravel project via its `xampress.json` file**:
@@ -217,6 +229,9 @@ In **Standalone Mode**, XamPress keeps everything neatly organized in your home 
 - [x] Built-in PHP server (`php -S`) per-site runner with `-n` (`0.0.0.0`) network flag
 - [x] Laravel project creation & validated `xampress artisan` wrapper
 - [x] Existing project/site cloning (`xampress clone`)
+- [x] Version selection for PHP, MySQL & Composer during setup
+- [x] Dedicated project isolation (`--isolate`) with project-specific PHP, MySQL & Composer
+- [x] Custom WordPress & Laravel framework version selection (`--version`)
 - [x] Custom `.local` domain mapping (`http://<project>.local`) for concurrent projects
 - [x] One-click / magic login URL (`auth.php?project=<name>` & `xampress login`)
 - [ ] Backup and restore of existing projects (`zip` + SQL dump)
