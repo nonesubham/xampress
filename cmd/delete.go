@@ -40,7 +40,8 @@ func deleteAction(projName string) {
 	}
 
 	var dbName string
-	if pcfg, err := utils.ReadProjectConfig(sitePath); err == nil && pcfg.DbName != "" {
+	pcfg, _ := utils.ReadProjectConfig(sitePath)
+	if pcfg != nil && pcfg.DbName != "" {
 		dbName = pcfg.DbName
 	}
 
@@ -69,7 +70,9 @@ func deleteAction(projName string) {
 	}
 	utils.PrintScrn("'"+baseName+"' folder deleted successfully.\n", "green", 0, false)
 
-	if dbName != "" && utils.ChkDB(dbName) {
+	if dbName != "" && pcfg != nil && pcfg.Isolate && pcfg.MysqlPort != 0 {
+		utils.PrintScrn("'"+dbName+"' database was isolated and deleted with project folder.\n", "green", 0, false)
+	} else if dbName != "" && utils.ChkDB(dbName) {
 		utils.DeleteDBase(dbName)
 		utils.PrintScrn("'"+dbName+"' database deleted successfully.\n", "green", 0, false)
 	}

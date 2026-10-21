@@ -170,3 +170,32 @@ func TestLaravelProjectValidation(t *testing.T) {
 	}
 	t.Logf("Laravel project validation passed for %s", pcfg.Name)
 }
+
+func TestVersionNormalizationAndURLs(t *testing.T) {
+	if NormalizePHPVersion("8.3.12") != "8.3" || NormalizePHPVersion("php8.2") != "8.2" || NormalizePHPVersion("8.1") != "8.1" {
+		t.Errorf("unexpected NormalizePHPVersion results")
+	}
+
+	if NormalizeMySQLVersion("mysql8") != "8.0" || NormalizeMySQLVersion("10.11.8") != "10.11" || NormalizeMySQLVersion("10.6") != "10.6" {
+		t.Errorf("unexpected NormalizeMySQLVersion results")
+	}
+
+	if NormalizeComposerVersion("2.7.7") != "2.7" || NormalizeComposerVersion("2.2") != "2.2" || NormalizeComposerVersion("latest") != "latest" {
+		t.Errorf("unexpected NormalizeComposerVersion results")
+	}
+
+	url, ext, err := GetPHPDownloadURLForVersion("8.2")
+	if err != nil || !strings.Contains(url, "8.2.24") || ext == "" {
+		t.Errorf("failed GetPHPDownloadURLForVersion: url=%s ext=%s err=%v", url, ext, err)
+	}
+
+	sqlURL, sqlExt, err := GetMySQLDownloadURLForVersion("8.0")
+	if err != nil || sqlURL == "" || sqlExt == "" {
+		t.Errorf("failed GetMySQLDownloadURLForVersion: url=%s ext=%s err=%v", sqlURL, sqlExt, err)
+	}
+
+	compURL, err := GetComposerDownloadURLForVersion("2.7")
+	if err != nil || !strings.Contains(compURL, "2.7.7") {
+		t.Errorf("failed GetComposerDownloadURLForVersion: url=%s err=%v", compURL, err)
+	}
+}

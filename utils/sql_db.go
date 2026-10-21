@@ -48,6 +48,17 @@ func CreateDBase(dbName string) {
 	Chk_error(err, "Unable to create database "+dbName)
 }
 
+// CreateDBaseOnHost creates a new database on a specific host and port
+func CreateDBaseOnHost(dbName string, host string, port int) {
+	cfg := GetConf()
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/", cfg.Db_user, cfg.Db_pass, host, port)
+	db, err := sql.Open("mysql", dsn)
+	Chk_error(err, "Error opening database connection")
+	defer db.Close()
+	_, err = db.Exec("CREATE DATABASE IF NOT EXISTS " + quoteIdent(dbName))
+	Chk_error(err, "Unable to create database "+dbName)
+}
+
 // ChkDB checks whether a database with db_name already exists.
 func ChkDB(db_name string) bool {
 	db := connDB()

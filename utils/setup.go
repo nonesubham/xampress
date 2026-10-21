@@ -100,6 +100,34 @@ func EnsureSetup(force bool) error {
 		PrintScrn("Invalid choice. Please enter 1 or 2.\n", "red", 0, false)
 	}
 
+	phpVer := DefaultPHPVersion
+	mysqlVer := DefaultMySQLVersion
+	composerVer := DefaultComposerVersion
+
+	if mode == ModeStandalone {
+		PrintScrn("\nSelect runtime versions to install:\n", "cyan", 0, false)
+		PrintScrn(fmt.Sprintf("PHP Version [%s] (default: %s): ", strings.Join(SupportedPHPVersions, "/"), DefaultPHPVersion), "white", 0, false)
+		inpPHP, _ := reader.ReadString('\n')
+		inpPHP = NormalizePHPVersion(inpPHP)
+		if inpPHP != "" {
+			phpVer = inpPHP
+		}
+
+		PrintScrn(fmt.Sprintf("MySQL/MariaDB Version [%s] (default: %s): ", strings.Join(SupportedMySQLVersions, "/"), DefaultMySQLVersion), "white", 0, false)
+		inpSQL, _ := reader.ReadString('\n')
+		inpSQL = NormalizeMySQLVersion(inpSQL)
+		if inpSQL != "" {
+			mysqlVer = inpSQL
+		}
+
+		PrintScrn(fmt.Sprintf("Composer Version [%s] (default: %s): ", strings.Join(SupportedComposerVersions, "/"), DefaultComposerVersion), "white", 0, false)
+		inpComp, _ := reader.ReadString('\n')
+		inpComp = NormalizeComposerVersion(inpComp)
+		if inpComp != "" {
+			composerVer = inpComp
+		}
+	}
+
 	cfg := Config{
 		Mode:       mode,
 		Db_user:    "root",
@@ -139,7 +167,11 @@ func EnsureSetup(force bool) error {
 		cfg.MysqldBin = defaultStandaloneMysqldBin(homeDir)
 		cfg.MysqlDataDir = filepath.Join(homeDir, "mysql-data")
 		cfg.WpCliPath = filepath.Join(homeDir, "bin", "wp-cli.phar")
+		cfg.ComposerPath = filepath.Join(homeDir, "bin", "composer.phar")
 		cfg.Db_port = 3307 // Use port 3307 by default in standalone mode to avoid conflicting with system MySQL
+		cfg.PhpVersion = phpVer
+		cfg.MySQLVersion = mysqlVer
+		cfg.ComposerVersion = composerVer
 	}
 
 	if err := os.MkdirAll(cfg.SitesDir, 0755); err != nil {
@@ -223,7 +255,11 @@ func EnsureRuntimeBinaries(cfg *Config) error {
 
 // InstallPortablePHP downloads and extracts portable PHP CLI into ~/.xampress/bin/php.
 func InstallPortablePHP(homeDir string, cfg *Config) error {
-	url, archiveExt, err := getPhpDownloadURL()
+	ver := cfg.PhpVersion
+	if ver == "" {
+		ver = DefaultPHPVersion
+	}
+	url, archiveExt, err := GetPHPDownloadURLForVersion(ver)
 	if err != nil {
 		return err
 	}
@@ -236,12 +272,12 @@ func InstallPortablePHP(homeDir string, cfg *Config) error {
 	archivePath := filepath.Join(homeDir, "bin", "php-portable"+archiveExt)
 	defer os.Remove(archivePath)
 
-	PrintScrn("\nInstalling Portable PHP 8.3...\n", "cyan", 0, false)
-	if err := DownloadWithProgress(url, archivePath, "Downloading PHP 8.3"); err != nil {
+	PrintScrn(fmt.Sprintf("\nInstalling Portable PHP %s...\n", ver), "cyan", 0, false)
+	if err := DownloadWithProgress(url, archivePath, fmt.Sprintf("Downloading PHP %s", ver)); err != nil {
 		return fmt.Errorf("failed to download portable PHP: %w", err)
 	}
 
-	if err := ExtractArchive(archivePath, phpDir, 0, "Extracting PHP 8.3"); err != nil {
+	if err := ExtractArchive(archivePath, phpDir, 0, fmt.Sprintf("Extracting PHP %s", ver)); err != nil {
 		return fmt.Errorf("failed to extract portable PHP: %w", err)
 	}
 
@@ -252,7 +288,11 @@ func InstallPortablePHP(homeDir string, cfg *Config) error {
 
 // InstallPortableMySQL downloads and extracts portable MySQL/MariaDB into ~/.xampress/bin/mysql.
 func InstallPortableMySQL(homeDir string, cfg *Config) error {
-	url, archiveExt, err := getMySQLDownloadURL()
+	ver := cfg.MySQLVersion
+	if ver == "" {
+		ver = DefaultMySQLVersion
+	}
+	url, archiveExt, err := GetMySQLDownloadURLForVersion(ver)
 	if err != nil {
 		return err
 	}
@@ -265,12 +305,12 @@ func InstallPortableMySQL(homeDir string, cfg *Config) error {
 	archivePath := filepath.Join(homeDir, "bin", "mysql-portable"+archiveExt)
 	defer os.Remove(archivePath)
 
-	PrintScrn("\nInstalling Portable MySQL/MariaDB Server...\n", "cyan", 0, false)
-	if err := DownloadWithProgress(url, archivePath, "Downloading MySQL"); err != nil {
+	PrintScrn(fmt.Sprintf("\nInstalling Portable MySQL/MariaDB %s Server...\n", ver), "cyan", 0, false)
+	if err := DownloadWithProgress(url, archivePath, fmt.Sprintf("Downloading MySQL %s", ver)); err != nil {
 		return fmt.Errorf("failed to download portable MySQL: %w", err)
 	}
 
-	if err := ExtractArchive(archivePath, mysqlDir, 1, "Extracting MySQL"); err != nil {
+	if err := ExtractArchive(archivePath, mysqlDir, 1, fmt.Sprintf("Extracting MySQL %s", ver)); err != nil {
 		return fmt.Errorf("failed to extract portable MySQL: %w", err)
 	}
 
